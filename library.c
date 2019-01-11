@@ -18,7 +18,7 @@ void deletebook(void);
 void searchprice(void);
 void searchquantity(void);
 void searchrack(void);
-void advanc_search_byname(void);
+void advance_search_byname(void);
 void generic_search(char *);
 void issue_books(void);
 
@@ -65,9 +65,9 @@ int main(int argc, char **argv)
         show_error(con);
 
     char username[20],password[20];
-    printf("Enter UserName : ");
+    printf("\nEnter UserName : ");
     scanf("%s",username);
-    printf("\nEnter Password : ");
+    printf("Enter Password : ");
     scanf("%s",password);
 
     snprintf(query, MAX_STRING, "SELECT username,password FROM library.users WHERE username = '%s' AND password = '%s'", username, password);
@@ -101,8 +101,8 @@ void database_connect(void)
     if(mysql_query(con, "CREATE TABLE IF NOT EXISTS books(ID int(8) AUTO_INCREMENT,Name char(30),Author char(30),Quantity int(5),Price int(5), Rack_no int(5), PRIMARY KEY(ID));"))
     show_error(con);
 
-    while(1)
-    {
+    
+    
         printf("\n\nWhat do you want to do : \n");
         printf("1). Add Users\n");
         printf("2). Add Books Details \n");
@@ -114,8 +114,9 @@ void database_connect(void)
         printf("8). Exit\n");
         printf("\nEnter a Choice : ");
 
-
-        switch(getchar())
+        int c = getchar();
+        c=getchar();
+        switch(c)
         {
             case '1':
                 addusers();
@@ -152,7 +153,7 @@ void database_connect(void)
                 printf("\nPlease Enter Correct Input\n");
                 break;
         }
-    }
+    
 }
 
 void addusers(void)
@@ -164,18 +165,28 @@ void addusers(void)
     scanf("%s",password);
     printf("Enter Full Name : ");
     scanf("%s",fullname);
-    //users[] = "user";
-    printf("%s",users);
 
     snprintf(query, MAX_STRING, "INSERT INTO users(username,password,fullname,registered_date,role) VALUES ('%s','%s','%s',curdate(),'user')" , username,password,fullname);
 
     if(mysql_query(con, query))
     show_error(con);
+
+    printf("\nDo you want to Add Another User : ");
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        addusers();
+    }
+    else
+    {
+        database_connect();
+    }
 }
 
 void addbooks(void)
 {
-    printf("Insert values(Name,Author,Quantity,Price,Rack no.) into books.\n");
+    printf("\nInsert values(Name,Author,Quantity,Price,Rack no.) into books.\n");
     
     printf("Name : ");
     scanf("%s",a.name);
@@ -198,7 +209,6 @@ void addbooks(void)
     //printf("entered one is %d\n", a.rack_no);
         
     snprintf(query, MAX_STRING, "INSERT INTO books(Name, Author, Quantity, Price, Rack_no) VALUES ('%s', '%s', %d, %d, %d)", a.name, a.author, a.quantity, a.price, a.rack_no);
-    printf("Query made is : %s\n", query);
 
     if(mysql_query(con, query))
     show_error(con);
@@ -210,6 +220,9 @@ void addbooks(void)
     if(choice == 'y' || choice == 'Y')
     {
         addbooks();
+    }
+    else{
+        database_connect();
     }
 }
 
@@ -228,9 +241,10 @@ void fetchdata()
   
     MYSQL_RES *result = mysql_store_result(con);
   
-    if (result == NULL) 
+    if (result->row_count == 0) 
     {
-        fprintf(stdout, "%s\n", "Currently there are no books in the library");
+        fprintf(stdout, "%s\n", "There is currently no book in the library ");
+        database_connect();
     }
 
     int num_fields = mysql_num_fields(result);
@@ -255,8 +269,16 @@ void fetchdata()
     }
   
     mysql_free_result(result);
-    mysql_close(con);
-    exit(0);
+    printf("\nDo you want to go to Other Options(Y/N)");
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        database_connect();
+    }
+    else{
+        exit(0);
+    }
 }
 
 void issue_books(void)
@@ -275,7 +297,7 @@ void searchbooks()
         fprintf(stderr, "mysql_init() failed\n");
         exit(1);
     }
-    printf("1). Search using Name\n");
+    printf("\n1). Search using Name\n");
     printf("2). Advanced Search\n");
     printf("Enter your Choice : ");
     int choose=0;
@@ -328,7 +350,7 @@ void advancedsearch()
         case 5:
             searchrack();
         case 6:
-            advanc_search_byname();
+            advance_search_byname();
         case 7:
             exit(0);
         default:
@@ -341,7 +363,7 @@ void advancedsearch()
 void searchname()
 {
     
-    printf("Enter Book Name : ");
+    printf("\nEnter Book Name : ");
     char name[100];
     scanf("%s",name);
     
@@ -360,25 +382,45 @@ void searchname()
 
     int num_fields = mysql_num_fields(result);
 
+    MYSQL_FIELD *field;
+
+    while((field = mysql_fetch_field(result)))
+    {
+        printf("%-14s", field->name);
+    }
+    printf("\n");
+
     MYSQL_ROW row;
 
     while ((row = mysql_fetch_row(result))) 
     { 
         for(int i = 0; i <= num_fields; i++) 
         { 
-            printf("%s ", row[i]); 
+            printf("%-14s ", row[i]); 
         } 
         printf("\n"); 
     }
 
     mysql_free_result(result);
+
+    printf("\nDo you want to go to Other Options(Y/N)");
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        database_connect();
+    }
+    else{
+        exit(0);
+    }
+
     mysql_close(con);
     exit(0);
     
 }
 
 
-void advanc_search_byname(void)
+void advance_search_byname(void)
 {
     printf("Enter Book Name : ");
     char name[100];
@@ -464,18 +506,38 @@ void generic_search(char * query)
 
         int num_fields = mysql_num_fields(result);
 
+        MYSQL_FIELD *field;
+
+        while((field = mysql_fetch_field(result)))
+        {
+            printf("%-14s", field->name);
+        }
+        printf("\n");
+
         MYSQL_ROW row;
-  
+
         while ((row = mysql_fetch_row(result))) 
         { 
             for(int i = 0; i <= num_fields; i++) 
             { 
-                printf("%s ", row[i]); 
+                printf("%-14s ", row[i]); 
             } 
             printf("\n"); 
         }
   
         mysql_free_result(result);
+
+         printf("\nDo you want to go to Other Options(Y/N)");
+        scanf(" %c", &choice);
+    
+        if(choice == 'y' || choice == 'Y')
+        {
+            database_connect();
+        }
+        else
+        {
+            exit(0);
+        }
         mysql_close(con);
         exit(0);
 
@@ -499,6 +561,7 @@ void editbooks(void)
     if (result->row_count == 0) 
     {
         fprintf(stdout, "%s\n", "There is no book in the library matching the entered ID.");
+        database_connect();
     }
 
     int num_fields = mysql_num_fields(result);
@@ -507,18 +570,16 @@ void editbooks(void)
 
     while((field = mysql_fetch_field(result)))
     {
-        printf("%20s", field->name);
+        printf("%-14s", field->name);
     }
     printf("\n");
     MYSQL_ROW row;
-
-
 
     while ((row = mysql_fetch_row(result))) 
     { 
         for(int i = 0; i <= num_fields; i++) 
         { 
-            printf("%20s", row[i]); 
+            printf("%-14s ", row[i]); 
         } 
         printf("\n"); 
     }
@@ -528,31 +589,37 @@ void editbooks(void)
     
     printf("Name : ");
     scanf("%s",a.name);
-    //printf("entered one is %s\n", a.name);
       
     printf("Author : ");
     scanf("%s",a.author);
-    //printf("entered one is %s\n", a.author);
       
     printf("Quantity : ");
     scanf("%d",&a.quantity);
-    //printf("entered one is %d\n", a.quantity);
       
     printf("Price : ");
     scanf("%d",&a.price);
-    //printf("entered one is %d\n", a.price);
       
     printf("Rack No : ");
     scanf("%d",&a.rack_no);
-    //printf("entered one is %d\n", a.rack_no);
         
     snprintf(query, MAX_STRING, "UPDATE books SET Name = '%s', Author = '%s', Quantity = %d, Price = %d, Rack_no = %d WHERE ID = %d", a.name, a.author, a.quantity, a.price, a.rack_no,id);
-    printf("Record Successfully Updated");
+    printf("\nRecord Successfully Updated");
 
     if(mysql_query(con, query))
     show_error(con);
 
     mysql_free_result(result);
+    printf("\nDo you want to go to Other Options(Y/N)");
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        database_connect();
+    }
+    else
+    {
+        exit(0);
+    }
     mysql_close(con);
     exit(0);
 }
@@ -568,5 +635,17 @@ void deletebook()
 
     if(mysql_query(con, query))
     show_error(con);
+
+    printf("\nDo you want to go to Other Options(Y/N)");
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        database_connect();
+    }
+    else
+    {
+        exit(0);
+    }
 
 }
