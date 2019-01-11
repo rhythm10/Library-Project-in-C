@@ -1,0 +1,38 @@
+							Library Management 
+
+
+In this Project I have made Library Management using C language. All the Data is stored in Mysql Database which is connected with C using mysql Header Files. This Project is composed of various functions which have particular working according to the required need. In this Project, we can do various manipulation to the Data stored in Database. In this a Particular User have access to the whole database who can Add Users,Add Books, Fetch the Book Data, Search Book, Edit Book, Issue Book and can Even Delete Books. This Project Comprises all the Funtions which a Library Management Should do.
+
+Add Users : This function Add a particular User to the Database.User which have specific information regarding user like Name,Password,	         	     FullName, Registered_Date, Role(which is default set to User).
+
+Add Books : This function Add Books to the Book Section with the mandatory Information as ID(Primary Key), Name, Author, Quantity, Price, Rack 		    no.
+
+Fetch Books Data : This Function show us all the Books which is stored in our database.books with all Information regarding to Books.
+
+Search Book : This Function works using two Others Options - 'Search by Name', 'Advanced Search'. 
+	      In Advanced Search we can Search any Book using Any Details which is Stored in our 'Database.users'.
+
+Edit Book : In this we Can Edit any Book Detail.
+
+Delete Book : This Function Delete Particular Book from the Database.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WORKING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+In this Project, Header Files(<my_global.h> , <mysql.h>) are Used which Connect C Language with the Mysql Client. 
+Firstly, this Project is Compiled using a Particular Command (gcc library.c -o lib `mysql_config --cflags --libs`).
+
+In this we have Globally Declared an Error Function which will tell us Error if we Encounter it. After this it will connect us to the Database Using mysql_real_connect and if Any error occur it will show us.
+
+Then at Run Time, We are Asked to Provide Username and Password of an Authorized User.After Entering the Following Details it will run a Query(Using snprintf) which retrieve the Particular username and Password if present in the library.users . If we get any row then it will give us Access to Software But If we Enter Wrong Password then we will not get any Row and we Cannot Access the Library Management Software. 
+
+After this, It will automatically create Library Database and ask us for various Options regarding Joining Users, Adding or Searching Boooks,Deletion of Books. We can opt all these Options by Choosing required Option from the List.
+
+For any Specific Work, we Enter the details and then using snprintf() that details are compressed with particular Query and then modification in the Database Occur.
+
+
+
+
+
+
+
