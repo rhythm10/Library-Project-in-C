@@ -1,706 +1,572 @@
-#include<stdio.h>
-#include<time.h>
-#include<string.h>
-#include<stdlib.h>
-#include<time.h>
-#include<termios.h>
-#include<unistd.h>
-#include<ctype.h>
+#include <my_global.h>
+#include <mysql.h>
 #include<conio.h>
 
-void mainmenu(void);
+void show_error(MYSQL *con);
 void addbooks(void);
-void deletebooks(void);
+int connection(void);
+void addusers(void);
+void fetchdata(void);
 void searchbooks(void);
-void issuebooks(void);
 void editbooks(void);
-void viewbooks(void);
-void password();
-void closeapplication(void);
-int t(void);
-int getdata();
-int checkid(int);
+void advancedsearch(void);
+void database_connect(void);
+void searchname(void);
+void searchauthor(void);
+void searchid(void);
+void deletebook(void);
+void searchprice(void);
+void searchquantity(void);
+void searchrack(void);
+void advanc_search_byname(void);
+void generic_search(char *);
+void issue_books(void);
 
-FILE *fs , *ft , *fp; //global files
-
-int s;
-char findbook;
-char opassword[10]={"codewithc"}; //for password
-
-char categories[][20]= {"Computer","Electronics","Mehanical","Civil","Aerospace"};
+void show_error(MYSQL *con) 
+{
+  
+   fprintf(stderr, "%s\n", mysql_error(con));
+   mysql_close(con);
+   exit(1);
+}
 
 struct books
 {
-	int id;
-	char stname[20]; //student name
-	char name[20]; //book name
-	char author[20];
-	int quantity;
-	float Price;
-	int count;
-	int rackno;
-};
-struct books a;
+    int id;
+    char name[20];
+    char author[20];
+    int quantity;
+    int price;
+    int rack_no;   
+}a;
 
-int main()
-{
-	password(); //for passwword confirmation
-}
-void password(void)
-{
-	int s,i=0;
-	char pass[15],ch=0;
-	printf("\n");
-	for(i=0;i<25;i++)
-	{
-		printf("*");
-	}
+char choice;
 
-	printf("Password Protected");
+MYSQL *con = NULL;
+#define MAX_STRING 1000
+char query[MAX_STRING] = {0};
 
-	for(i=0;i<25;i++)
-	{
-		printf("*");
-	}
-	printf("\n\nEnter password to access Library as Administrator : \n");
-	i=0;
-	while(ch != 10) //10 is ascii value for enter
-	{
-		ch = getch(); //getch used for input
-		if(ch != 10)
-		{
-			printf("*");
-			pass[i] = ch;
-			i++;
-		}
-	}
-	pass[i]='\0';
-	if(strcmp(pass,opassword) == 0) //for comparison
-	{
-		printf("\n\t\t\tPassword match\n");
-		printf("\t\tPress any key to countinue!!!!\n");
-		getch();
-		mainmenu();
-	}
-	else
-	{
-		printf("\nIncorrect Password\n");
-		getch();
-		password();
-	}
-}
 
-void mainmenu(void)
-{
-	int i;
+int main(int argc, char **argv)
+{ 
+    printf("Welcome to the Library Management Software\n");
+    printf("Please Enter your Credential to Login(username/Password)\n");
 
-	printf("\n");
-	for(i=0;i<25;i++)
-	{
-		printf("*");
-	}
-	printf("MAIN MENU");
-	for(i=0;i<25;i++)
-	{
-		printf("*");
-	}
-	printf("\n\n1. Add Books");
-	printf("\n2. Delete Books");
-	printf("\n3. Search  Books");
-	printf("\n4. View Book List");
-	printf("\n5. Edit Books");
-	printf("\n6. Issue Books");
-	printf("\n7. Close Whole Program");
 
-	printf("\nEnter Your Choice : ");
-	switch(getchar())
-	{
-		case '1':
-		addbooks();
-		break;
+    con = mysql_init(NULL);
 
-		case '2':
-		deletebooks();
-		break;
+    if (con == NULL) 
+    {
+        fprintf(stderr, "%s\n", mysql_error(con));
+        exit(1);
+    }
+    
+    if (mysql_real_connect(con, "localhost", "rhythm", "password", NULL, 0, NULL, CLIENT_MULTI_STATEMENTS) == NULL) 
+        show_error(con);
 
-		case '3':
-		searchbooks();
-		break;
+    char username[20],password[20];
+    printf("Enter UserName : ");
+    scanf("%s",username);
+    printf("\nEnter Password : ");
+    scanf("%s",password);
 
-		case '4':
-		viewbooks();
-		break;
+    snprintf(query, MAX_STRING, "SELECT username,password FROM library.users WHERE username = '%s' AND password = '%s'", username, password);
+    
+    if (mysql_query(con, query))
+        show_error(con);
 
-		case '5':
-		editbooks();
-		break;
 
-		case '6':
-		issuebooks();
-		break;
-
-		case '7':
-		printf("\n\t\t\tLibrary Management System");
-		printf("\n\t\tHope you are Satisfied with our Service\n\n");
-		exit(0);
-
-		default:
-		{
-			printf("\nEnter Correct Option");
-			mainmenu();
-			break;
-		}
-
-	}
+    MYSQL_RES *result = mysql_store_result(con);
+  
+    if (result->row_count == 0) 
+    {
+        fprintf(stdout, "%s\n", "Incorrect UserName or Password.");
+    }
+    else
+    {
+        database_connect();
+    }
+    
 
 }
 
-void addbooks()
+void database_connect(void)
 {
-	int i=0;
-	printf("\n");
-	for(i=0;i<21;i++)
-	{
-		printf("*");
-	}
-	printf("Select Categories");
-	for(i=0;i<21;i++)
-	{
-		printf("*");
-	}
+    if (mysql_query(con, "CREATE DATABASE IF NOT EXISTS library;"))
+    show_error(con);
+  
+    if(mysql_query(con, "USE library;"))
+    show_error(con);
+  
+    if(mysql_query(con, "CREATE TABLE IF NOT EXISTS books(ID int(8) AUTO_INCREMENT,Name char(30),Author char(30),Quantity int(5),Price int(5), Rack_no int(5), PRIMARY KEY(ID));"))
+    show_error(con);
 
-	printf("\n\n1. Computer");
-	printf("\n2. Electronics");
-	printf("\n3. Mechanical");
-	printf("\n4. Civil");
-	printf("\n5. Aerospace");
-	printf("\n6. Back to Main Menu");
+    while(1)
+    {
+        printf("\n\nWhat do you want to do : \n");
+        printf("1). Add Users\n");
+        printf("2). Add Books Details \n");
+        printf("3). Show Books Details \n");
+        printf("4). Search Books\n");
+        printf("5). Edit Book Details\n");
+        printf("6). Issue Books\n");
+        printf("7). Delete Particular Book\n");
+        printf("8). Exit\n");
+        printf("\nEnter a Choice : ");
 
-	printf("\nEnter your Choice : ");
-	scanf("%d",&s);
-	if(s==6)
-	{
-		mainmenu();
-	}
-	fp=fopen("book.dat","ab+"); //this will create or open book name file
-	if(getdata()==1) //1 means new book details have been entered
-	{
-	
-		fseek(fp,0,SEEK_END);
-		fwrite(&a,sizeof(a),1,fp);
-		fclose(fp);
-		printf("\nRecord is saved Succesfully!!!\n");
-		printf("Do you want to save more records (Y/N)");
-		if(getch()=='Y' || getch()=='y')
-		{
-			addbooks();
-		}
-		else
-		{
-			mainmenu();
-		}
-	}
+
+        switch(getchar())
+        {
+            case '1':
+                addusers();
+                break;
+
+            case '2':
+                addbooks();
+                break;
+        
+            case '3':
+                fetchdata();
+                break;
+
+            case '4':
+                searchbooks();
+                break;
+
+            case '5':
+                editbooks();
+                break;
+
+            case '6':
+                issue_books();
+                break;
+
+            case '7':
+                deletebook();
+                break;
+
+            case '8':
+                exit(0);
+
+            default:
+                printf("\nPlease Enter Correct Input\n");
+                break;
+        }
+    }
 }
 
-void deletebooks(void)
+void addusers(void)
 {
-	int id;
-	while(1)
-	{
-		int findbook,t;
-		printf("Enter the book ID to Delete : ");
-		scanf("%d",&id);
-		fp = fopen("book.dat","wb+");
-		rewind(fp);
-		while(fread(&a,sizeof(a),1,fp)==1);
-		{
-			if(a.id==id)
-			{
-				printf("\nBook is Available\n");
-				printf("Book name is %s",a.name);
-				printf("\nAuthor is  %s",a.author);
-				findbook = 't';
-			}
-		}
-		if(findbook != 't')
-		{
-			printf("\nNo book is Found. Error!!!");
-			mainmenu();
-		}
-		if(findbook == 't')
-		{
-			printf("\nDo you want to delete it (Y/N) ?");
-			if(getch()=='y' || getch()=='Y')
-			{
-				ft = fopen("test.dat","wb+");
-				rewind(fp);
-				while(fread(&a,sizeof(a),1,fp)==1)
-				{
-					if(a.id != id)
-					{
-						fseek(ft,0,SEEK_CUR);
-						fwrite(&a,sizeof(a),1,ft);
-					}
-				}
-				fclose(ft);
-				remove("book.dat");
-				rename("test.dat","book.dat");
-				fp = fopen("Book.dat","rb+");
-				if(findbook=='t')
-				{
-					printf("Record is successfully deleted");
-				}
-				else
-				{ 
-					mainmenu();
-				}
-				fclose(fp);
+    char username[30],password[20],fullname[30],users[10]= "user",user;
+    printf("\nEnter Username : ");
+    scanf("%s",username);
+    printf("Enter Password : ");
+    scanf("%s",password);
+    printf("Enter Full Name : ");
+    scanf("%s",fullname);
+    //users[] = "user";
+    printf("%s",users);
 
-			}
-		}
-	}
+    snprintf(query, MAX_STRING, "INSERT INTO users(username,password,fullname,registered_date,role) VALUES ('%s','%s','%s',curdate(),'user')" , username,password,fullname);
+
+    if(mysql_query(con, query))
+    show_error(con);
 }
+
+void addbooks(void)
+{
+    printf("Insert values(Name,Author,Quantity,Price,Rack no.) into books.\n");
+    
+    printf("Name : ");
+    scanf("%s",a.name);
+    //printf("entered one is %s\n", a.name);
+      
+    printf("Author : ");
+    scanf("%s",a.author);
+    //printf("entered one is %s\n", a.author);
+      
+    printf("Quantity : ");
+    scanf("%d",&a.quantity);
+    //printf("entered one is %d\n", a.quantity);
+      
+    printf("Price : ");
+    scanf("%d",&a.price);
+    //printf("entered one is %d\n", a.price);
+      
+    printf("Rack No : ");
+    scanf("%d",&a.rack_no);
+    //printf("entered one is %d\n", a.rack_no);
+        
+    snprintf(query, MAX_STRING, "INSERT INTO books(Name, Author, Quantity, Price, Rack_no) VALUES ('%s', '%s', %d, %d, %d)", a.name, a.author, a.quantity, a.price, a.rack_no);
+    printf("Query made is : %s\n", query);
+
+    if(mysql_query(con, query))
+    show_error(con);
+
+    printf("Do you want to Enter More Records(Y/N) : ");
+    
+    scanf(" %c", &choice);
+    
+    if(choice == 'y' || choice == 'Y')
+    {
+        addbooks();
+    }
+}
+
+void fetchdata()
+{
+    if (con == NULL)
+    {
+        fprintf(stderr, "mysql_init() failed\n");
+        exit(1);
+    }   
+  
+    if (mysql_query(con, "SELECT * FROM books")) 
+    {
+        show_error(con);
+    }
+  
+    MYSQL_RES *result = mysql_store_result(con);
+  
+    if (result == NULL) 
+    {
+        fprintf(stdout, "%s\n", "Currently there are no books in the library");
+    }
+
+    int num_fields = mysql_num_fields(result);
+
+    MYSQL_ROW row;
+
+    MYSQL_FIELD *field;
+
+    while((field = mysql_fetch_field(result)))
+    {
+        printf("%-14s", field->name);
+    }
+    printf("\n");
+
+    while ((row = mysql_fetch_row(result))) 
+    { 
+        for(int i = 0; i <= num_fields; i++) 
+        { 
+            printf("%-14s", row[i]); 
+        } 
+            printf("\n"); 
+    }
+  
+    mysql_free_result(result);
+    mysql_close(con);
+    exit(0);
+}
+
+void issue_books(void)
+{
+    if (con == NULL)
+    {
+        fprintf(stderr, "mysql_init() failed\n");
+        exit(1);
+    }
+}
+
 void searchbooks()
 {
-	int i,d,t,ch;
-	for(i=0;i<20;i++)
-	{
-		printf("*");
-	}
-	printf("Search Books");
-	for(i=0;i<20;i++)
-	{
-		printf("*");
-	}
-	printf("\n\n1. Search Book by Id :");
-	printf("\n2. Search Book by Name : ");
-	printf("\nEnter your Choice : ");
-	fp = fopen("book.dat","rb+");
-	ch = getchar();
-	switch(ch)
-	{
-		case '1':
-		{
-			int i,n;
-			printf("\n");
-			for(i=0;i<16;i++)
-			{
-				printf("*");
-			}
-			printf("Search Book by Id");
-			for(i=0;i<16;i++)
-			{
-				printf("*");
-			}
-			printf("\n\nEnter Book ID : ");
-			scanf("%d",&d);
-			while(fread(&a,sizeof(a),1,fp)==1)
-			{
-				if(a.id==d)
-				{
-					printf("\nThe book is Available");
-					printf("\nID : %d",a.id);
-					printf("\nName : %s",a.name);
-					printf("\nAuthor : %s ",a.author);
-					printf("\nQantity : %d ",a.quantity);
-					printf("\nPrice : Rs.%.2f",a.Price);
-					printf("\nRack No : %d ",a.rackno);
-					findbook = t;
-				}
-			} 
-			if(findbook != t)
-			{
-				printf("\nNo Record Found");
-			}
-			printf("\nTry another search?(Y/N)");
-			if(getch()=='y' || getch()=='Y')
-			{
-				searchbooks();
-			}
-			else
-			{
-				mainmenu();
-			}
-			break;
-		}	
-		case '2':
-		{
-			int  i,d=0;
-			char s[10];
-			printf("\n");
-			for(i=0;i<20;i++)
-			{
-				printf("*");
-			}
-			printf("Search Book by Name");
-			for(i=0;i<20;i++)
-			{
-				printf("*");
-			}
-			printf("\nEnter Book Name : ");
-			scanf("%s",s);
-			while(fread(&a,sizeof(a),1,fp)==1)
-			{
-				if(strcmp(a.name,(s))==0) 
-				{
-					printf("\nThe Book is available");
-					printf("\nID:%d",a.id);
-					printf("\nName:%s",a.name);
-					printf("\nAuthor:%s",a.author);
-					printf("\nQantity:%d",a.quantity);		
-					printf("\nPrice:Rs.%.2f",a.Price);
-					printf("\nRack No:%d ",a.rackno);
-					printf("\n");
-					d++;
-				}
-			}
-			if(d==0)
-			{
-				printf("\nNo Record Found");
-			}
-			printf("\nTry another search?(Y/N)");
-			if(getch()=='y' || getch()=='Y')
-			{
-				searchbooks();
-			}
-			else
-			{
-				mainmenu();
-			}
-		}
-		break;
+    if (con == NULL)
+    {
+        fprintf(stderr, "mysql_init() failed\n");
+        exit(1);
+    }
+    printf("1). Search using Name\n");
+    printf("2). Advanced Search\n");
+    printf("Enter your Choice : ");
+    int choose=0;
+    scanf("%d",&choose);
 
-		default:
-		{
-			printf("\nEnter Correct Choice either 1 or 2: ");
-			searchbooks();
-			break;
-		}
-	}
-}
-void viewbooks()
-{
+    switch(choose)
+    {
+        case 1:
+        {
+            searchname();
+        }
 
-	int i=0,j=0;
-	printf("*********************************Book List*****************************\n");
-	printf("        ID     BOOK NAME    AUTHOR      QTY    PRICE     RackNo ");
-	fp=fopen("book.dat","rb+");
-	while(fread(&a,sizeof(a),1,fp)==1)
-	{
-		printf("\n\t%d",a.id);
-		printf("\t%s",a.name);
-		printf("\t    %s",a.author);
-		printf("\t %d",a.quantity);
-		printf("\t%.2f",a.Price);
-		printf("\t   %d",a.rackno);
-		printf("\n");
-		i=i+a.quantity;
-	}
-	printf("\nTotal Books =%d\n",i);
-	fclose(fp);
-	printf("\nPress Enter for Main Menu otherwise Exit ");
-	if(getch()==10)
-	{
-		mainmenu();
-	}
-	else
-		exit(0);
-}
-void editbooks(void) 
-{
-int c=0,i;
-int d,e;
-	for(i=0;i<16;i++)
-	{
-	  printf("*");
-	}
-	printf("Edit Books Section");
-	for(i=0;i<16;i++)
-	{
-	  printf("*");
-	}
-	char another='y';
-	while(another=='y')
-	{
-		printf("Enter Book Id to be edited:");
-		scanf("%d",&d);
-		fp=fopen("book.dat","rb+");
-		while(fread(&a,sizeof(a),1,fp)==1)
-		{
-			if(checkid(d)==0)
-			{
-				printf("\nThe book is availble");
-				printf("\nThe Book ID:%d",a.id);
-				printf("\nEnter new name:");
-				scanf("%s",a.name);
-				printf("\nEnter new Author:");
-				scanf("%s",a.author);
-				printf("\nEnter new quantity:");
-				scanf("%d",&a.quantity);
-				printf("\nEnter new price:");
-				scanf("%f",&a.Price);
-				printf("\nEnter new rackno:");
-				scanf("%d",&a.rackno);
-				printf("\nThe record is modified");
-				fseek(fp,ftell(fp)-sizeof(a),0); //explain me this
-				fwrite(&a,sizeof(a),1,fp);
-				fclose(fp);
-				c=1;
-			}
-			if(c==0)	
-			{
-				printf("\nNo record found");
-			}
-			printf("\nModify another Record?(Y/N)\n");
-			another=getch();
-			if(another == 'y' || 'Y')
-			{
-				searchbooks();
-			}
-			else
-			{
-				mainmenu();
-			}
-		}	
-	}
-}
-void issuebooks(void)
-{
-	int t,i;
-	for(i=0;i<18;i++)
-	{
-		printf("*");
-	}
-	printf("Issue Section");
-	for(i=0;i<18;i++)
-	{
-		printf("*");
-	}	
-	printf("\n\n1. Issue a Book");
-	printf("\n2. View Issued Book");
-	printf("\n3. Search Issued Book");
-	printf("\n4. Remove Issued Book");
-	printf("\nEnter a Choice:");
-	switch(getch())
-	{
-		case '1':  
-		{
-			int c=0;
-			char another='y';
-			while(another=='y')
-			{
-				for(i=0;i<18;i++)
-				{
-					printf("*");
-				}
-				printf("Issue Book section");
-				for(i=0;i<18;i++)
-				{
-					printf("*");
-				}
-				printf("\nEnter the Book Id : ");
-				scanf("%d",&t);
-				fp=fopen("book.dat","rb");
-				fs=fopen("Issue.dat","ab+");
-				if(checkid(t)==0) 
-				{
-					printf("\nThe book record is available");
-					printf("\nThere are %d unissued books in library ",a.quantity);
-					printf("\nThe name of book is %s",a.name);
-					printf("\nEnter student name:");
-					scanf("%s",a.stname);
-		
-					printf("The BOOK of ID %d is issued",a.id);
-			
-					fseek(fs,sizeof(a),SEEK_END);
-					fwrite(&a,sizeof(a),1,fs);
-					fclose(fs);
-					c=1;
-				}
-				if(c==0)
-				{
-					printf("No record found");
-				}
-				printf("Issue any more(Y/N):");
-				another=getch();
-				fclose(fp);
-			}
-		break;
-		}
-		case '2':
-		{
-			int j=4;
-			printf("\n");
-			for(i=0;i<18;i++)
-			{
-				printf("*");
-			}
-			printf("Issued book list");
-			for(i=0;i<18;i++)
-			{
-				printf("*");
-			}
-			printf("\nSTUDENT NAME    CATEGORY    ID    BOOK NAME  ");
-			fs=fopen("Issue.dat","rb");
-			while(fread(&a,sizeof(a),1,fs)==1)
-			{
-				printf("\n%s",a.stname);
-				printf("\n%s",categories[s-1]);
-				printf("\n%d",a.id);
-				printf("\n%s",a.name);
-				j++;
-			}
-			fclose(fs);
-		}
-		break;
-		case '3':  
-		{
-			int p,c=0;
-			char another='y';
-			while(another=='y')
-			{
-				printf("Enter Book ID:");
-				scanf("%d",&p);
-				fs=fopen("Issue.dat","rb");
-				while(fread(&a,sizeof(a),1,fs)==1)
-				{
-					if(a.id==p)
-					{
-						issuebooks();
-						printf("Press any key.......");
-						getch();
-						c=1;
-					}
-				}
-				fclose(fs);
-				if(c==0)
-				{
-					printf("No Record Found");
-				}
-				printf("Try Another Search?(Y/N)");
-				another=getch();
-			}
-		}
-		break;
-		case '4':  //remove issued books from list
-		{	
-			int b;
-			FILE *fg;  //declaration of temporary file for delete
-			char another='y';
-			while(another=='y' || 'Y')
-			{
-				printf("Enter book id to remove:");
-				scanf("%d",&b);
-				fs=fopen("Issue.dat","rb+");
-				while(fread(&a,sizeof(a),1,fs)==1)
-				{
-					if(a.id==b)
-					{
-						issuebooks();
-						findbook='t';
-					}
-					if(findbook=='t')
-					{	
-						printf("Do You Want to Remove it?(Y/N)");
-						if(getch()=='y' || 'Y')
-						{
-							fg=fopen("record.dat","wb+");
-							rewind(fs);
-							while(fread(&a,sizeof(a),1,fs)==1)
-							{	
-								if(a.id!=b)
-								{
-									fseek(fs,0,SEEK_CUR);
-									fwrite(&a,sizeof(a),1,fg);
-								}
-							}
-							fclose(fs);
-						fclose(fg);
-						}
-						remove("Issue.dat");
-						rename("record.dat","Issue.dat");
-						printf("The issued book is removed from list");
-					}
-				}
-				if(findbook!='t')
-				{
-					printf("No Record Found");
-				}
-			}
-			printf("Delete any more?(Y/N)");
-			another=getch();
-		}
-		default:
-		printf("\aWrong Entry!!");
-		getch();
-		issuebooks();
-		break;
-	}
+        case 2:
+        {
+            advancedsearch();
+        }
+
+        default:
+        {
+            printf("Enter Correct Choice\n");
+            searchbooks();
+        }    
+
+    }
 }
 
-int getdata()
+void advancedsearch()
 {
-	int t,i;
-	printf("\n");
-	for(i=0;i<16;i++)
-	{
-		printf("*");
-	}
-	printf("Enter the Information Below");
-	for(i=0;i<16;i++)
-	{
-		printf("*");
-	}
-	printf("*");
-	printf("\nCategory [%s]\n",categories[s-1]);
-	printf("\nEnter Book ID : ");
-	scanf("%d",&t);
+    printf("\n1). Search using ID : \n");
+    printf("2). Search using Author Name : \n");
+    printf("3). Search using Quantity : \n");
+    printf("4). Search using Price : \n");
+    printf("5). Search using Rack No. \n");
+    printf("6). Search using Book Name. \n");
+    printf("7). Exit\n");
+    printf("\nEnter your Choice : ");
+    int choose;
+    scanf("%d",&choose);
 
-	if(checkid(t) == 0) //if book id exist
-	{
-		printf("\nThe book id Already Exists\n");
-		printf("Press Any key to go to addbooks\n");
-		getch();
-  		addbooks();
-	}
-	else
-	{
-		a.id = t;
-		printf("\nBook Name : ");
-		scanf("%s",a.name);
-		printf("\nAuthor Name : ");
-		scanf("%s",a.author);
-		printf("\nQuantity:");
-		scanf("%d",&a.quantity);
-		printf("\nPrice:");
-		scanf("%f",&a.Price);
-		printf("\nRack No:");
-		scanf("%d",&a.rackno);
-		return 1;
-	}
+    switch(choose)
+    {
+        case 1:
+            searchid();
+        case 2:
+            searchauthor();
+        case 3:
+            searchquantity();
+        case 4:
+            searchprice();
+        case 5:
+            searchrack();
+        case 6:
+            advanc_search_byname();
+        case 7:
+            exit(0);
+        default:
+            printf("Enter Correct Choice");
+            break;
+
+    }
 }
 
-int checkid(int t)
+void searchname()
 {
-	rewind(fp); //for  taking cursor at first
-	while(fread(&a,sizeof(a),1,fp)==1)
-	if(a.id==t)
-	{
-		return 0; //0 is matcch found
-	}
-		return 1;
+    
+    printf("Enter Book Name : ");
+    char name[100];
+    scanf("%s",name);
+    
+    snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Name = '%s'", name);
+
+    if (mysql_query(con, query)) 
+    {
+        show_error(con);
+    }
+    MYSQL_RES *result = mysql_store_result(con);
+    
+    if (result->row_count == 0) 
+    {
+        fprintf(stdout, "%s\n", "There is no book in the library matching the entered name.");
+    }
+
+    int num_fields = mysql_num_fields(result);
+
+    MYSQL_ROW row;
+
+    while ((row = mysql_fetch_row(result))) 
+    { 
+        for(int i = 0; i <= num_fields; i++) 
+        { 
+            printf("%s ", row[i]); 
+        } 
+        printf("\n"); 
+    }
+
+    mysql_free_result(result);
+    mysql_close(con);
+    exit(0);
+    
 }
-int getch (void)
+
+
+void advanc_search_byname(void)
 {
-    int ch;
-    struct termios oldt, newt;
+    printf("Enter Book Name : ");
+    char name[100];
+    scanf("%s",name);
+    
+    snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Name LIKE '%%%s%%'", name);
+    generic_search(query);
+}
 
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON|ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    ch = getchar();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+void searchid(void)
+{
 
-    return ch;
+    printf("Enter ID  : ");
+    int id;
+    scanf("%d",&id);
+
+    snprintf(query, MAX_STRING, "SELECT * FROM books WHERE ID LIKE '%%%d%%'", id);
+
+    generic_search(query);
+
+}
+
+void searchauthor(void)
+{
+        printf("Enter Author Name : ");
+        char author[20];
+        scanf("%s",author);
+
+        snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Author LIKE '%%%s%%'", author);
+
+        generic_search(query);
+}
+
+void searchprice(void)
+{
+        printf("Enter Price for Search : ");
+        int price;
+        scanf("%d",&price);
+
+        snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Price LIKE '%%%d%%'", price);
+
+        generic_search(query);
+
+}
+
+void searchrack(void)
+{
+
+    printf("Enter Rack No. Search : ");
+    int rackno;
+    scanf("%d",&rackno);
+
+    snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Rack_no LIKE '%%%d%%'", rackno);
+    generic_search(query);
+}
+
+void searchquantity(void)
+{
+        printf("Enter Quantity for Search : ");
+        int quantity;
+        scanf("%d",&quantity);
+
+        snprintf(query, MAX_STRING, "SELECT * FROM books WHERE Quantity LIKE '%%%d%%'", quantity);
+
+        generic_search(query);
+}
+
+
+
+void generic_search(char * query)
+{
+        if (mysql_query(con, query)) 
+        {
+            show_error(con);
+        }
+
+        MYSQL_RES *result = mysql_store_result(con);
+  
+        if (result->row_count == 0) 
+        {
+            fprintf(stdout, "%s\n", "There is no book in the library matching the entered Criteria.");
+        }
+
+        int num_fields = mysql_num_fields(result);
+
+        MYSQL_ROW row;
+  
+        while ((row = mysql_fetch_row(result))) 
+        { 
+            for(int i = 0; i <= num_fields; i++) 
+            { 
+                printf("%s ", row[i]); 
+            } 
+            printf("\n"); 
+        }
+  
+        mysql_free_result(result);
+        mysql_close(con);
+        exit(0);
+
+}
+
+void editbooks(void)
+{
+    printf("Enter Book ID  : ");
+    int id;
+    scanf("%d",&id);
+
+    snprintf(query, MAX_STRING, "SELECT * FROM books WHERE ID = %d", id);
+
+    if (mysql_query(con, query)) 
+    {
+        show_error(con);
+    }
+
+    MYSQL_RES *result = mysql_store_result(con);
+
+    if (result->row_count == 0) 
+    {
+        fprintf(stdout, "%s\n", "There is no book in the library matching the entered ID.");
+    }
+
+    int num_fields = mysql_num_fields(result);
+    printf("%s\n", "Current Book Details: ");  
+    MYSQL_FIELD *field;
+
+    while((field = mysql_fetch_field(result)))
+    {
+        printf("%20s", field->name);
+    }
+    printf("\n");
+    MYSQL_ROW row;
+
+
+
+    while ((row = mysql_fetch_row(result))) 
+    { 
+        for(int i = 0; i <= num_fields; i++) 
+        { 
+            printf("%20s", row[i]); 
+        } 
+        printf("\n"); 
+    }
+
+    printf("\nEnter new Book Details : \n\n");
+    printf("Insert new values(Name,Author,Quantity,Price,Rack no.) into books.\n");
+    
+    printf("Name : ");
+    scanf("%s",a.name);
+    //printf("entered one is %s\n", a.name);
+      
+    printf("Author : ");
+    scanf("%s",a.author);
+    //printf("entered one is %s\n", a.author);
+      
+    printf("Quantity : ");
+    scanf("%d",&a.quantity);
+    //printf("entered one is %d\n", a.quantity);
+      
+    printf("Price : ");
+    scanf("%d",&a.price);
+    //printf("entered one is %d\n", a.price);
+      
+    printf("Rack No : ");
+    scanf("%d",&a.rack_no);
+    //printf("entered one is %d\n", a.rack_no);
+        
+    snprintf(query, MAX_STRING, "UPDATE books SET Name = '%s', Author = '%s', Quantity = %d, Price = %d, Rack_no = %d WHERE ID = %d", a.name, a.author, a.quantity, a.price, a.rack_no,id);
+    printf("Record Successfully Updated");
+
+    if(mysql_query(con, query))
+    show_error(con);
+
+    mysql_free_result(result);
+    mysql_close(con);
+    exit(0);
+}
+
+void deletebook()
+{
+    printf("\nEnter Book ID to Delete Particular Book : ");
+    int bookid;
+    scanf("%d",&bookid);
+
+    snprintf(query, MAX_STRING, "DELETE from books WHERE ID = %d",bookid);
+    printf("Book has been Deleted Successfully\n");
+
+    if(mysql_query(con, query))
+    show_error(con);
+
 }
