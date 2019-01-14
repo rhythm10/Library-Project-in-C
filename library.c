@@ -3,6 +3,7 @@
 #include<conio.h>
 
 void show_error(MYSQL *con);
+void users_show(void);
 void addbooks(void);
 int connection(void);
 void addusers(void);
@@ -84,7 +85,18 @@ int main(int argc, char **argv)
     }
     else
     {
-        database_connect();
+        snprintf(query, MAX_STRING, "SELECT role FROM library.users WHERE username = '%s' AND password = '%s'", username, password);
+        char users[10]= "user";
+        MYSQL_RES *result = mysql_store_result(con);
+        
+        if(result == users)
+        {
+            database_connect();
+        }
+        else
+        {
+            users_show();
+        }
     }
     
 
@@ -102,7 +114,11 @@ void database_connect(void)
     show_error(con);
 
     
+<<<<<<< HEAD
+        printf("\n*****************************You Logged in as Admin*********************************");
+=======
     
+>>>>>>> c61bcb3795474c23e52e8c6c86969891abe8d48d
         printf("\n\nWhat do you want to do : \n");
         printf("1). Add Users\n");
         printf("2). Add Books Details \n");
@@ -155,7 +171,34 @@ void database_connect(void)
         }
     
 }
+void users_show(void)
+{
+    if(mysql_query(con, "CREATE DATABASE IF NOT EXISTS library;"))
+    show_error(con);
+  
+    if(mysql_query(con, "USE library;"))
+    show_error(con);
+  
+    if(mysql_query(con, "CREATE TABLE IF NOT EXISTS books(ID int(8) AUTO_INCREMENT,Name char(30),Author char(30),Quantity int(5),Price int(5), Rack_no int(5), PRIMARY KEY(ID));"))
+    show_error(con);
 
+    printf("**************************You Logged in as a User******************************");
+    printf("\n1). Show Books Details");
+    printf("\n2). Exit");
+
+    int c = getchar();
+    c=getchar();
+    switch(c)
+    {
+        case '1':
+            fetchdata();
+            break;
+
+        case '2':
+            exit(0);
+            break;
+    }
+}
 void addusers(void)
 {
     char username[30],password[20],fullname[30],users[10]= "user",user;
