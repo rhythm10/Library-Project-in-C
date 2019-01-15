@@ -72,10 +72,8 @@ int main(int argc, char **argv)
     scanf("%s",password);
 
     snprintf(query, MAX_STRING, "SELECT username,password FROM library.users WHERE username = '%s' AND password = '%s'", username, password);
-    
     if (mysql_query(con, query))
         show_error(con);
-
 
     MYSQL_RES *result = mysql_store_result(con);
   
@@ -86,10 +84,9 @@ int main(int argc, char **argv)
     else
     {
         snprintf(query, MAX_STRING, "SELECT role FROM library.users WHERE username = '%s' AND password = '%s'", username, password);
-        char users[10]= "user";
-        MYSQL_RES *result = mysql_store_result(con);
+        char users[5]= "user";
         
-        if(result == users)
+        if(strcmp(result,users==0))
         {
             database_connect();
         }
@@ -114,11 +111,7 @@ void database_connect(void)
     show_error(con);
 
     
-<<<<<<< HEAD
         printf("\n*****************************You Logged in as Admin*********************************");
-=======
-    
->>>>>>> c61bcb3795474c23e52e8c6c86969891abe8d48d
         printf("\n\nWhat do you want to do : \n");
         printf("1). Add Users\n");
         printf("2). Add Books Details \n");
